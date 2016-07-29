@@ -15,14 +15,21 @@ To get a development environment running:
 - Install a recent version of the Java SDK
 - Install [Gradle2.14+](https://gradle.org)
 - Ensure gradleroot/bin is in your PATH.
-- Clone the repo from [Github](https://github.com/darbha-ram/SmallCalc.git).
+- Clone the repo from [here](https://github.com/darbha-ram/SmallCalc.git).
+
+## Assumptions
+
+- Parsing errors result in "Error in expression" to be printed to console instead of an integer value. These can include unmatches braces or other errors that violate the grammar.
+- If an expression parses correctly but violates some semantic rule e.g. division by zero, or literal is outside the Integer MIN - MAX range, evaluation fails and "Error in expression" is printed to console.
+- Positive and negative integers are supported, e.g. "add (-3,1)" evaluates to -2.
+- The last example in the assignment "let(a, let(b, 10, add(b, b)), let(b, 20, add(a, b))" is actually invalid as it is missing one closing brace.  Adding that brace, it evaluates to 40, as expected.
+- If a variable is missing e.g. "let(a, 10, add(c,10))" where "c" is unknown, then "Error in expression" is printed.
+- For the purposes of this standalone application, log4j2 was used directly.  If implementing a shared library or more complex project, slf4j is a better choice as a facade that permits a different logging implementation at runtime.
 
 
 ## Implementation 
 
-This is a brief description of the implementation, it can be skipped if only interested in deploying and executing the application.
-
-The application source is contained in src/main/javacc/SmallCalc.jj.  The "jj" file is a specification of the lexical and production rules of the grammar to be parsed by JavaCC.  With each production, Java code to be executed when segments of a rule are matched are provided.
+The application source is contained in src/main/javacc/SmallCalc.jj.  The "jj" file is a JavaCC specification of the lexical and production rules of the grammar.  Each production is captured in a method that also has Java code to be executed when segments of that rule are matched.
 
 For a description of "jj" file specification, see [JavaCC Documentation](http://javacc.java.net/doc/docindex.html).
 
