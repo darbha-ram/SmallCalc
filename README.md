@@ -14,8 +14,8 @@ JavaCC is also a prerequisite, but it doesn't have to be explicitly installed as
 To get a development environment running:
 - Install a recent version of the Java SDK
 - Install [Gradle2.14+](https://gradle.org)
-- Ensure <gradleroot>/bin is in your PATH.
-- Clone the repo from (Github)[https://github.com/darbha-ram/SmallCalc.git].
+- Ensure gradleroot/bin is in your PATH.
+- Clone the repo from [Github](https://github.com/darbha-ram/SmallCalc.git).
 
 
 ## Implementation 
@@ -24,7 +24,7 @@ This is a brief description of the implementation, it can be skipped if only int
 
 The application source is contained in src/main/javacc/SmallCalc.jj.  The "jj" file is a specification of the lexical and production rules of the grammar to be parsed by JavaCC.  With each production, Java code to be executed when segments of a rule are matched are provided.
 
-For a description of "jj" file specification, see (JavaCC Documentation)[http://javacc.java.net/doc/docindex.html].
+For a description of "jj" file specification, see [JavaCC Documentation](http://javacc.java.net/doc/docindex.html).
 
 Grammar rules specified in SmallCalc.jj:
 ```
@@ -37,8 +37,17 @@ LetExpr := "let" "(" AlphaLiteral "," Expr "," Expr ")"
 UnaryExpr := IntegerLiteral | AlphaLiteral
 ```
 
+Lexical tokens are defined as:
+
+```
+IntegerLiteral := ( ("-" DIGIT) | DIGIT ) [DIGIT]\*
+AlphaLiteral := [a-zA-z]\*
+```
+
 
 ## Build and Deploy
+
+The command 'gradle build' executes the pre-compile step of running JavaCC on the grammar file, to generate Java source code for the parser. It then compiles that code and builds distributions.
 
 ```
 $ cd SmallCalc (root folder of git repo)
@@ -50,7 +59,7 @@ $ cd SmallCalc/bin
 
 ## Execution Examples
 
-SmallCalc uses log4j2 to log its progress. The file log4j2.xml in build/ configures log4j, e.g. the log file build/smallcalc.log.
+Gradle generates scripts to execute the application, handling classpaths and other runtime details.  On Linux, use the executable script SmallCalc, on Windows use SmallCalc.bat.  SmallCalc uses log4j2 for logging. The file log4j.xml in build/ configures log4j. The output file is configured as build/smallcalc.log as default.
 
 To get usage info:
 
@@ -58,7 +67,7 @@ To get usage info:
 $ ./SmallCalc
 ```
 
-To evaluate expression and filter logs at the level set in log4j2.xml:
+To evaluate expression and filter logs at the level set in log4j.xml:
 
 ```
 $ ./SmallCalc "add(1, mult(3,4))"
