@@ -156,5 +156,35 @@ public class SmallCalcTest
         }
     }
 
+    @Test
+    public void testMissingBrace()
+    {
+        String input;
+
+        input = "let(a, 6, add(a, 10)\n";
+        SmallCalc c3 = new SmallCalc(new ByteArrayInputStream(input.getBytes()));
+        try {
+            Integer t3 = c3.TerminatedExpre();
+            fail("Missing brace should have failed parse");
+        } catch (Exception e) {
+        }
+    }
+
+    @Test
+    public void testExcessBrace()
+    {
+        String input;
+
+        input = "let(a, 6, add(a, 10)))\n";
+        SmallCalc c3 = new SmallCalc(new ByteArrayInputStream(input.getBytes()));
+        try {
+            Integer t3 = c3.TerminatedExpre();
+            fail("Excess brace should have failed parse");
+        } catch (Exception e) {
+        }
+    }
+
+
+
 }
 
