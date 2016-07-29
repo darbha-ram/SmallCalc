@@ -46,8 +46,8 @@ UnaryExpr := IntegerLiteral | AlphaLiteral
 Lexical tokens are defined as:
 
 ```
-IntegerLiteral := ( ("-" DIGIT) | DIGIT ) [DIGIT]\*
-AlphaLiteral := [a-zA-z]\*
+IntegerLiteral := ( ("-" DIGIT) | DIGIT ) [DIGIT]*
+AlphaLiteral := [a-zA-z]*
 ```
 
 
