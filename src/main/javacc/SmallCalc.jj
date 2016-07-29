@@ -1,0 +1,286 @@
+
+/**
+ * Simple arithmetic expression calculator 
+ *
+ * @author ramdarbha
+ */
+options {
+  STATIC=false;
+}
+
+PARSER_BEGIN(SmallCalc)
+
+package com.ramdarbha.examples;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+
+import java.io.ByteArrayInputStream;
+import java.util.Map;
+import java.util.HashMap;
+
+public class SmallCalc
+{
+    // map of variable names & values in "let" expressions
+    public static Map<String, Integer> letMap_m = new HashMap<String, Integer>();
+
+    private static final Logger log = LogManager.getLogger(SmallCalc.class);
+
+    public static void main(String args[])
+    {
+        if ((args.length == 0) || (args.length > 2))
+        {
+            System.out.println("Usage: SmallCalc <expression> [log level]");
+            System.out.println("    <expression> e.g. \"add(1, mult(-4, let(a, 3, div(15,a))))\"");
+            System.out.println("    [log level] : optional, string e.g. OFF, ERROR, WARN, INFO, DEBUG, ALL");
+            System.out.println("    If not given, defaults to level in log4j2.xml");
+            return;
+        }
+
+        if (args.length == 2)
+        {
+            // log level was specified - retrieve and set
+            try {
+	        final Level lev = Level.valueOf(args[1]);
+                LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+                Configuration config = ctx.getConfiguration();
+                LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME); 
+                loggerConfig.setLevel(lev);
+                ctx.updateLoggers();
+            } catch (Exception e) {
+                System.out.println("Invalid log level " + args[1] + ", ignoring..");
+            }
+        }
+
+        log.info("SmallCalc: got input " + args[0]);
+
+        final String input = args[0] + "\n";
+        SmallCalc t = new SmallCalc(new ByteArrayInputStream(input.getBytes()));
+
+        try
+        {
+            Integer total = t.TerminatedExpre();
+
+            // If the parser deemed the input to be valid syntactically, but there were
+            // semantic errors (such as division by zero, Integer range exceeded or
+            // invalid variable references), then the expression evaluates to null.
+
+            // check the computed value
+            if (total == null)
+                System.out.println("Error in expression");
+            else
+                System.out.println(total);
+    
+        } catch (Exception e) {
+
+            // We are here because there was a parsing error, i.e. input did not
+            // conform to the specified grammar.
+
+            log.error("Invalid expression? " + args[0]);
+            log.debug(e.getMessage());
+            System.out.println("Error in expression");
+            //e.printStackTrace();
+        }
+    }
+}
+
+PARSER_END(SmallCalc)
+
+
+SKIP :
+{
+  " "
+| "\t"
+}
+
+TOKEN : /* LITERALS */
+{
+  < ADDLIT: "add" >
+|
+  < MULTLIT: "mult" >
+|
+  < SUBLIT: "sub" >
+|
+  < DIVLIT: "div" >
+|
+  < LETLIT: "let" >
+|
+  < DECIMAL_LITERAL: ( ("-" <DIGIT> ) | <DIGIT> ) (<DIGIT>)* >
+|
+  < IDENTIFIER: <LETTER> (<LETTER>)* >
+|
+  < #LETTER: ["a"-"z","A"-"Z"] >
+|
+  < #DIGIT: ["0"-"9"] >
+}
+
+
+Integer TerminatedExpre()  : { Integer total = 0; }
+{
+    total = Expression() "\n"
+    {
+        log.info("Complete Expression computed = " + total);
+        return total;
+    }
+}
+
+/*
+ * Top level production
+ */
+Integer Expression() : { Integer total = 0; }
+{
+    ( total = AddExpre() | total = MultExpre() |
+      total = SubExpre() | total = DivExpre() |
+      total = UnaryExpre() | total = LetExpre() )
+    {
+        log.debug("Expression = " + total);
+        return total;
+    }
+}
+
+Integer AddExpre() : {Integer e1 = 0; Integer e2 = 0; }
+{
+    (<ADDLIT> "(" e1 = Expression() "," e2 = Expression() ")" )
+    {
+        if ((e1 == null) || (e2 == null))
+            return null;
+
+        log.info("Add expression = " + (e1+e2));
+        return e1 + e2;
+    }
+}
+
+Integer MultExpre() : {Integer e1 = 0; Integer e2 = 0; }
+{
+    (<MULTLIT> "(" e1 = Expression() "," e2 = Expression() ")" )
+    {
+        if ((e1 == null) || (e2 == null))
+            return null;
+
+        log.info("Mult expression = " + e1*e2);
+        return e1 * e2;
+    }
+}
+
+Integer SubExpre() : {Integer e1 = 0; Integer e2 = 0; }
+{
+    (<SUBLIT> "(" e1 = Expression() "," e2 = Expression() ")" )
+    {
+        if ((e1 == null) || (e2 == null))
+            return null;
+
+        log.info("Sub expression = " + (e1-e2));
+        return e1 - e2;
+    }
+}
+
+Integer DivExpre() : {Integer e1 = 0; Integer e2 = 0; }
+{
+    (<DIVLIT> "(" e1 = Expression() "," e2 = Expression() ")" )
+    {
+        if ((e1 == null) || (e2 == null))
+            return null;
+        if (e2 == 0)
+        {
+            log.error("Division by zero!");
+            return null;
+        }
+        return e1 / e2;
+    }
+}
+
+Integer UnaryExpre() : {Integer e1 = 0; }
+{
+    (
+        ( e1 = IntLiteral() )
+        {
+            log.debug("Integer literal = " + e1);
+            return e1;
+        }
+    |
+        ( e1 = VarLiteral() )
+        {
+            log.debug("Variable literal = " + e1);
+            return e1;
+        }
+
+    ) 
+}
+
+/*
+ * Parse expression of the form "let(a, b, c)"
+ */
+Integer LetExpre() : {String varName = null; Integer e2 = 0; Integer e3 = 0; }
+{
+    (
+        (<LETLIT> "(" varName = VarDecl() "," e2 = Expression() )  /* "let(a, b" parsed */
+        {
+            if (e2 == null)
+                log.error("Failed to compute variable " + varName);
+            else
+            {
+                log.info("Let expression: var " + varName + " set to " + e2);
+                letMap_m.put(varName, e2);
+            }
+        }
+    
+        "," e3 = Expression() ")"
+    ) /* ", c)" also parsed */ 
+    {
+        log.info("Let expression: computed value = " + e3);
+        return e3;
+    }
+}
+
+
+/*
+ * Variable literal - this is a reference to a previously computed
+ * variable. Look up and return its numerical value.
+ */
+Integer VarLiteral() : { Token t; Integer e1; }
+{
+    t = <IDENTIFIER>
+    {
+        e1 = letMap_m.get(t.image);
+        if (e1 == null)
+            log.error("Failed to access var " + t.image);
+        return e1;
+    }
+}
+
+/*
+ * Variable declaration - matched when a variable is defined in a
+ * 'let' expression.  Return the variable name so its integer value
+ * can be computed and saved, to be referenced later.
+ */
+String VarDecl() : { Token t; Integer e1; }
+{
+    t = <IDENTIFIER>
+    {
+        return t.image;
+    }
+}
+
+
+/*
+ * Parse the numerical value as an Integer. If it fails to parse,
+ * e.g. exceeds Integer MIN or MAX, return null.
+ */
+Integer IntLiteral() : { Token t; Integer e1; }
+{
+    t = <DECIMAL_LITERAL>
+    {
+        try {
+            e1 = Integer.parseInt(t.image);
+            return e1;
+        } catch (Exception e) {
+            log.error("Failed to parse int: " + t.image);
+            return null;
+        }
+    }
+}
+
